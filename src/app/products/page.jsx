@@ -119,7 +119,7 @@ export default function Products() {
             <div key={product._id} className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300">
               <figure className="px-10 pt-10">
                 <img
-                  src="https://img.daisyui.com/images/stock/photo-1606107557195-0e29a4b5b4aa.webp" // Placeholder image
+                  src={ product.image || "https://img.daisyui.com/images/stock/photo-1606107557195-0e29a4b5b4aa.webp"} // Placeholder image
                   alt={product.productName}
                   className="rounded-xl h-48 object-cover"
                 />

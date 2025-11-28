@@ -3,11 +3,13 @@
 import useAuth from "@/hooks/useAuth";
 import Link from "next/link";
 import React from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
 export default function Register() {
 
 
+  const router = useRouter();
   const { register, handleSubmit } = useForm();
   const { registerUser, updateUserProfile, googleLogin } = useAuth();
 
@@ -38,6 +40,7 @@ export default function Register() {
             updateUserProfile(data.name, imageUrl)
               .then(() => {
                 console.log('User profile updated');
+                 router.push("/");
               })
               .catch((error) => {
                 console.error('Error updating user profile:', error);
@@ -50,6 +53,7 @@ export default function Register() {
     googleLogin()
       .then((result) => {
         console.log(result);
+        router.push("/");
       })
       .catch((error) => {
         console.error('Error logging in with Google:', error);

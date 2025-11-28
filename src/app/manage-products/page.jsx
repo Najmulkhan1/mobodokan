@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import useAuth from '@/hooks/useAuth';
 
-export default function MyPhoneList() {
+export default function ManageProducts() {
     const router = useRouter();
     const { user, loading: authLoading } = useAuth();
     const [products, setProducts] = useState([]);
@@ -91,11 +91,44 @@ export default function MyPhoneList() {
         }
     };
 
+    // Helper: upload image file to server. Assumes you have an /api/upload endpoint
+    const uploadImageFile = async (file) => {
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+            const res = await fetch(`https://api.imgbb.com/1/upload?key=${process.env.NEXT_PUBLIC_IMAGEBB_API_KEY}`, {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await res.json();
+            if (data.success && data.data?.url) return data.data.url;
+            console.error('Upload failed', data);
+            return null;
+        } catch (err) {
+            console.error('Upload error', err);
+            return null;
+        }
+    };
+
     const handleEdit = async (e) => {
         e.preventDefault();
         if (!editingProduct) return;
 
         try {
+            setLoading(true);
+
+            // If user selected a new file, upload it first
+            let imageUrl = editingProduct.image; // existing
+            if (editingProduct.newImageFile) {
+                const uploaded = await uploadImageFile(editingProduct.newImageFile);
+                if (uploaded) imageUrl = uploaded;
+            }
+
+            // If user provided a direct image URL in the field, prefer that (unless a new file was uploaded)
+            if (!editingProduct.newImageFile && editingProduct.imageInputUrl) {
+                imageUrl = editingProduct.imageInputUrl;
+            }
+
             const res = await fetch(`/api/items/${editingProduct._id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -106,6 +139,7 @@ export default function MyPhoneList() {
                     price: parseFloat(editingProduct.price),
                     stock: parseInt(editingProduct.stock, 10),
                     description: editingProduct.description,
+                    image: imageUrl,
                 }),
             });
             const data = await res.json();
@@ -122,7 +156,19 @@ export default function MyPhoneList() {
         } catch (error) {
             console.error('Update error:', error);
             alert('Failed to update product');
+        } finally {
+            setLoading(false);
         }
+    };
+
+    const onSelectImageFile = (file) => {
+        if (!file) return;
+        // create preview
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            setEditingProduct((prev) => ({ ...prev, newImageFile: file, imagePreview: ev.target.result }));
+        };
+        reader.readAsDataURL(file);
     };
 
     if (authLoading || loading) {
@@ -166,7 +212,7 @@ export default function MyPhoneList() {
                             <input
                                 type="text"
                                 placeholder="Search by name, brand, or category..."
-                                className="input input-bordered w-full"
+                                className="input input-bordered mr-1"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -259,11 +305,17 @@ export default function MyPhoneList() {
                                                 </td>
                                                 <td>
                                                     <div className="flex gap-2 justify-center">
+                                                        <Link href={`/products/${product._id}`} className="btn btn-sm btn-ghost btn-outline" title="View Details">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                                                                <path d="M12 5c-7.633 0-11 6.5-11 7s3.367 7 11 7 11-6.5 11-7-3.367-7-11-7zm0 11a4 4 0 110-8 4 4 0 010 8z" />
+                                                            </svg>
+                                                        </Link>
+
                                                         <button
                                                             className="btn btn-sm btn-info btn-outline"
                                                             onClick={() => {
                                                                 // clone product into editingProduct to avoid mutating original object
-                                                                setEditingProduct({ ...product });
+                                                                setEditingProduct({ ...product, imagePreview: product.image, imageInputUrl: product.image });
                                                                 editModalRef.current?.showModal();
                                                             }}
                                                         >
@@ -386,6 +438,45 @@ export default function MyPhoneList() {
                                     value={editingProduct.description || ''}
                                     onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
                                 />
+                            </div>
+
+                            {/* Image controls: preview, url input, file upload */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                                <div>
+                                    <label className="label"><span className="label-text">Current / Preview</span></label>
+                                    <div className="w-48 h-48 bg-base-200 rounded-lg overflow-hidden flex items-center justify-center">
+                                        {editingProduct.imagePreview ? (
+                                            // preview (base64 or url)
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={editingProduct.imagePreview} alt="preview" className="object-contain w-full h-full" />
+                                        ) : (
+                                            <p className="text-sm text-center px-2">No image</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="label"><span className="label-text">Image URL (or paste new URL)</span></label>
+                                    <input
+                                        type="text"
+                                        className="input input-bordered w-full"
+                                        value={editingProduct.imageInputUrl || ''}
+                                        onChange={(e) => setEditingProduct({ ...editingProduct, imageInputUrl: e.target.value })}
+                                        placeholder="https://example.com/image.jpg"
+                                    />
+
+                                    <label className="label mt-2"><span className="label-text">Or upload a new image</span></label>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="file-input file-input-bordered w-full"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            onSelectImageFile(file);
+                                        }}
+                                    />
+                                    <p className="text-xs opacity-60 mt-2">If you upload a file it will be sent to <code>/api/upload</code> — make sure your backend supports this.</p>
+                                </div>
                             </div>
 
                             <div className="modal-action">

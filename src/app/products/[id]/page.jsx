@@ -132,6 +132,16 @@ export default function ProductDetails() {
 
     if (!product) return null;
 
+    if(!user){
+        return (
+            <div className="min-h-screen flex flex-col justify-center items-center gap-4 bg-base-100">
+                <h2 className="text-3xl font-bold text-error">Oops!</h2>
+                <p className="text-lg text-base-content/70">You must be logged in to view this page.</p>
+                <button className="btn btn-outline btn-primary" onClick={() => router.back()}>Go Back</button>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-base-100 py-10 px-4 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
@@ -150,7 +160,7 @@ export default function ProductDetails() {
                     <div className="relative group">
                         <div className="aspect-square bg-base-200/50 rounded-3xl overflow-hidden flex items-center justify-center p-8 shadow-inner">
                             <img
-                                src="https://img.daisyui.com/images/stock/photo-1606107557195-0e29a4b5b4aa.webp"
+                                src={product.image || "https://img.daisyui.com/images/stock/photo-1606107557195-0e29a4b5b4aa.webp"}
                                 alt={product.productName}
                                 className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
                             />

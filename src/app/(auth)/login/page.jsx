@@ -3,8 +3,11 @@ import Link from "next/link";
 import React from "react";
 import { useForm } from "react-hook-form";
 import useAuth from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
+
 export default function Login() {
 
+  const router = useRouter();
   const { register, handleSubmit } = useForm();
   const { loginUser, googleLogin } = useAuth();
 
@@ -13,6 +16,7 @@ export default function Login() {
     loginUser(data.email, data.password)
       .then((result) => {
         console.log(result);
+        router.push("/");
       })
       .catch((error) => {
         console.error('Error logging in:', error);
@@ -25,7 +29,8 @@ export default function Login() {
     googleLogin()
       .then((result) => {
         console.log(result);
-      })
+        router.push("/");
+        })
       .catch((error) => {
         console.error('Error logging in with Google:', error);
       })

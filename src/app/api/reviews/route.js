@@ -47,19 +47,18 @@ export async function GET(request) {
         const { searchParams } = new URL(request.url);
         const productId = searchParams.get('productId');
 
-        if (!productId) {
-            return NextResponse.json({
-                success: false,
-                error: 'Product ID is required'
-            }, { status: 400 });
+        const query = {};
+        if (productId) {
+            query.productId = productId;
         }
 
         const client = await dbConnect();
         const db = client.db('myNextAppDB');
 
         const reviews = await db.collection('reviews')
-            .find({ productId })
+            .find(query)
             .sort({ createdAt: -1 })
+            .limit(10) // Limit to 10 latest reviews for global fetch
             .toArray();
 
         return NextResponse.json({ success: true, data: reviews }, { status: 200 });

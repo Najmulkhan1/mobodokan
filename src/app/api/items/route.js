@@ -31,6 +31,8 @@ export async function GET(request) {
         const category = searchParams.get('category');
         const sort = searchParams.get('sort');
 
+        const limit = parseInt(searchParams.get('limit')) || 0;
+
         const client = await dbConnect();
         const db = client.db('myNextAppDB');
 
@@ -52,7 +54,13 @@ export async function GET(request) {
             sortOption = { price: -1 };
         }
 
-        const products = await db.collection('products').find(query).sort(sortOption).toArray();
+        let cursor = db.collection('products').find(query).sort(sortOption);
+
+        if (limit > 0) {
+            cursor = cursor.limit(limit);
+        }
+
+        const products = await cursor.toArray();
 
         return NextResponse.json({ success: true, data: products }, { status: 200 });
     } catch (error) {
